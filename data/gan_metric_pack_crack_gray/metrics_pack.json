@@ -1,0 +1,7 @@
+{
+  "source_dataset": "data/crack_only_gray_A300_B600",
+  "fixed_A_count": 30,
+  "real_B_count": 120,
+  "real_mask_count": 120,
+  "usage": "Generate checkpoints on fixed_A, then compare fake_B/fake_mask visually and by mask area/fragmentation against real_B/real_mask."
+}
