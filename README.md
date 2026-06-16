@@ -14,6 +14,10 @@ This package intentionally excludes UI, SAM preprocessing, multi-class data buil
   - YOLO segmentation dataset exported from the same real B/mask pairs used for GAN.
   - Train 510, val 90.
   - Class: `crack`.
+- `data/yolo_crack_seg_from_original_B1100`
+  - YOLO segmentation dataset exported from the original 1100 B/mask pool before the B600 reduction.
+  - Train 935, val 165.
+  - Class: `crack`.
 - `data/gan_metric_pack_crack_gray`
   - Fixed A/B/mask review set for comparing GAN checkpoints.
 - `yolo26n-seg.pt`
@@ -110,7 +114,7 @@ If `fake_mask` is almost all black or `diff` changes the full image background, 
 
 This trains YOLO segmentation from the real B/mask pairs used for GAN training, not from GAN-generated images.
 
-Recommended:
+Recommended smaller/cleaner B600 run:
 
 ```bash
 cd cap2ganyolo
@@ -125,7 +129,22 @@ yolo segment train \
   name=crack_real_B600_yolo26seg_770
 ```
 
-Higher resolution:
+Original B1100 run:
+
+```bash
+cd cap2ganyolo
+
+yolo segment train \
+  data=$(pwd)/data/yolo_crack_seg_from_original_B1100/data.yaml \
+  model=$(pwd)/yolo26n-seg.pt \
+  epochs=120 \
+  imgsz=770 \
+  batch=16 \
+  project=$(pwd)/runs/segment \
+  name=crack_original_B1100_yolo26seg_770
+```
+
+Higher resolution B600:
 
 ```bash
 cd cap2ganyolo
@@ -140,9 +159,26 @@ yolo segment train \
   name=crack_real_B600_yolo26seg_1036
 ```
 
+Higher resolution original B1100:
+
+```bash
+cd cap2ganyolo
+
+yolo segment train \
+  data=$(pwd)/data/yolo_crack_seg_from_original_B1100/data.yaml \
+  model=$(pwd)/yolo26n-seg.pt \
+  epochs=120 \
+  imgsz=1036 \
+  batch=8 \
+  project=$(pwd)/runs/segment \
+  name=crack_original_B1100_yolo26seg_1036
+```
+
 YOLO26 may adjust image size to a multiple of stride 14. That is why the commands use `770` and `1036`.
 
 ## 4. Validate YOLO
+
+B600 validation:
 
 ```bash
 cd cap2ganyolo
@@ -150,6 +186,17 @@ cd cap2ganyolo
 yolo segment val \
   data=$(pwd)/data/yolo_crack_seg_from_gan_B600/data.yaml \
   model=$(pwd)/runs/segment/crack_real_B600_yolo26seg_770/weights/best.pt \
+  imgsz=770
+```
+
+Original B1100 validation:
+
+```bash
+cd cap2ganyolo
+
+yolo segment val \
+  data=$(pwd)/data/yolo_crack_seg_from_original_B1100/data.yaml \
+  model=$(pwd)/runs/segment/crack_original_B1100_yolo26seg_770/weights/best.pt \
   imgsz=770
 ```
 
@@ -183,10 +230,25 @@ python scripts/export_yolo_seg_from_gan_dataset.py \
   --epsilon 1.2
 ```
 
+To regenerate the original B1100 dataset, copy the original B/mask pool into the package and run:
+
+```bash
+cd cap2ganyolo
+
+python scripts/export_yolo_seg_from_gan_dataset.py \
+  --dataset-root data/crack_only_gan_optimized_1100 \
+  --out-root data/yolo_crack_seg_from_original_B1100 \
+  --val-ratio 0.15 \
+  --min-area 20 \
+  --epsilon 1.2
+```
+
 ## Practical Notes
 
 - GAN and YOLO are separate here.
 - GAN is for generating/reviewing synthetic crack appearance.
-- YOLO training uses real B/mask labels from the GAN training dataset.
+- YOLO training uses real B/mask labels, not generated masks.
+- Use `yolo_crack_seg_from_gan_B600` first if you want the cleaner reduced set.
+- Use `yolo_crack_seg_from_original_B1100` if you want more real B examples and can tolerate more background/domain variety.
 - Do not train YOLO on GAN outputs unless the GAN masks are visually verified first.
 - For this dataset, very long GAN training can make background texture worse. Prefer checkpoint review every 5 epochs.
